@@ -43,7 +43,8 @@ jobs:
       - name: 📂 Modify QCOW2 (Copy Folder & Run Command)
         run: |
           export LIBGUESTFS_DEBUG=1 LIBGUESTFS_TRACE=1
-          virt-customize --add cirros-${{ matrix.arch }}.qcow2 --copy-in test/vms/ramen:/tmp --run-command "/tmp/ramen/install" --run-command "sed -i 's/^\(kernel .*\)$$/\1 quiet/' /boot/grub/menu.lst" --delete "/tmp/ramen"
+          sudo chmod 0644 /boot/vmlinuz-*
+          sudo virt-customize --add cirros-${{ matrix.arch }}.qcow2 --copy-in test/vms/ramen:/tmp --run-command "/tmp/ramen/install" --run-command "sed -i 's/^\(kernel .*\)$$/\1 quiet/' /boot/grub/menu.lst" --delete "/tmp/ramen"
             
       - name: Convert to Compressed QCOW2
         run: |
