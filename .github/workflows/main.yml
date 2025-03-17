@@ -1,77 +1,49 @@
-name: Multi-Arch QCOW2 Container Build
+name: Build Multi-Arch Image
 
 on:
   push:
     branches:
       - main
-  workflow_dispatch:
+  pull_request:
 
 jobs:
-  modify-qcow2:
+  build:
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         arch: [x86_64, aarch64, ppc64le, arm]
-    runs-on: ubuntu-latest
-
     steps:
-      - name: 🛎️ Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: 📥 Download QCOW2 Image for ${{ matrix.arch }}
+      - name: Install Required Packages
         run: |
-          wget -O cirros-${{ matrix.arch }}.qcow2 "https://download.cirros-cloud.net/0.6.2/cirros-0.6.2-${{ matrix.arch }}-disk.img"
+          sudo apt-get update
+          sudo apt-get install -y qemu-utils qemu-system qemu-kvm virtinst libvirt-daemon-system libvirt-clients
 
-      - name: 🛠 Install Dependencies
+      - name: Check QEMU Version
         run: |
-          sudo apt update
-          sudo apt install -y libguestfs-tools podman
+          QEMU_VERSION=$(qemu-system-${{ matrix.arch }} --version | head -n1)
+          echo "QEMU Version: $QEMU_VERSION"
 
-      - name: 📂 Modify QCOW2 (Copy Folder & Run Command)
+      - name: Verify No Outdated QEMU Binaries
         run: |
-          mkdir -p custom_files
-          echo "Hello from GitHub Actions on ${{ matrix.arch }}!" > custom_files/message.txt
-          
-          virt-customize --add cirros-${{ matrix.arch }}.qcow2 \
-            --copy-in ../ramen:/tmp \
-            --copy-in "/tmp/ramen/install" \
-            --run-command "sed -i 's/^\(kernel .*\)$$/\1 quiet/' /boot/grub/menu.lst" \
-            --delete "/tmp/ramen"
-      - name: 📦 Compress QCOW2 Image
+          if sudo virsh list --outdated | grep -q "No VM guests are running outdated hypervisor"; then
+            echo "QEMU is up-to-date. Proceeding with the build."
+          else
+            echo "Outdated QEMU binaries detected. Updating..."
+            sudo apt-get install --only-upgrade qemu-system qemu-utils
+          fi
+
+      - name: Download Cirros Image
         run: |
-          qemu-img convert -f qcow2 -O qcow2 -c cirros-${{ matrix.arch }}.qcow2 cirros-${{ matrix.arch }}-compressed.qcow2
-          mv cirros-${{ matrix.arch }}-compressed.qcow2 cirros-${{ matrix.arch }}.qcow2
-          
-      - name: 📤 Upload Modified QCOW2 Image
-        uses: actions/upload-artifact@v4
-        with:
-          name: modified-qcow2-${{ matrix.arch }}
-          path: cirros-${{ matrix.arch }}.qcow2
+          ./download-cirros --cirros-version 0.6.2 --arch ${{ matrix.arch }} --output cirros-0.6.2-${{ matrix.arch }}.qcow2
 
-  build-and-push-container:
-    needs: modify-qcow2
-    runs-on: ubuntu-latest
-    steps:
-      - name: 🛎️ Checkout repository
-        uses: actions/checkout@v4
-
-      - name: 🔽 Download Modified QCOW2 Images
-        uses: actions/download-artifact@v4
-        with:
-          path: qcow2_images
-
-      - name: 🔧 Setup Buildx for Multi-Arch
-        uses: docker/setup-buildx-action@v3
-
-      - name: 🔑 Login to Quay.io
+      - name: Convert to Compressed QCOW2
         run: |
-          echo "${{ secrets.QUAY_PASSWORD }}" | docker login quay.io -u "${{ secrets.QUAY_USERNAME }}" --password-stdin
+          qemu-img convert -f qcow2 -O qcow2 -c cirros-0.6.2-${{ matrix.arch }}.qcow2 cirros-${{ matrix.arch }}-compressed.qcow2
 
-      - name: 🏗️ Build & Push Multi-Arch Image
+      - name: Build and Push Multi-Arch Image
         run: |
-          docker buildx create --use
-          
-          docker buildx build \
-            --platform linux/amd64,linux/arm64,linux/ppc64le,linux/arm \
-            --tag quay.io/${{ secrets.QUAY_USERNAME }}/custom-qcow2:latest \
-            --file Containerfile \
-            --push
+          podman build --tag quay.io/your-repo/cirros:${{ matrix.arch }} --build-arg disk=cirros-${{ matrix.arch }}-compressed.qcow2 .
+          podman push quay.io/your-repo/cirros:${{ matrix.arch }}
