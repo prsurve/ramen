@@ -54,7 +54,7 @@ jobs:
         run: |
           qemu-img convert -f qcow2 -O qcow2 -c cirros-${{ matrix.arch }}.qcow2 cirros-${{ matrix.arch }}-compressed.qcow2
           
-build-and-push-container:
+  build-and-push-container:
     needs: modify-qcow2
     runs-on: ubuntu-latest
     steps:
