@@ -7,11 +7,11 @@ on:
   pull_request:
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  modify-qcow2:
     strategy:
       matrix:
         arch: [x86_64, aarch64, ppc64le, arm]
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -19,7 +19,7 @@ jobs:
       - name: Install Required Packages
         run: |
           sudo apt-get update
-          sudo apt-get install -y qemu-utils qemu-system qemu-kvm virtinst libvirt-daemon-system libvirt-clients
+          sudo apt-get install -y qemu-utils qemu-system qemu-kvm virtinst libvirt-daemon-system libvirt-clients libguestfs-tools podman
 
       - name: Check QEMU Version
         run: |
@@ -39,12 +39,46 @@ jobs:
         run: |
           # ./download-cirros --cirros-version 0.6.2 --arch ${{ matrix.arch }} --output cirros-0.6.2-${{ matrix.arch }}.qcow2
           wget -O cirros-${{ matrix.arch }}.qcow2 "https://download.cirros-cloud.net/0.6.2/cirros-0.6.2-${{ matrix.arch }}-disk.img"
-
+      - name: 📂 Modify QCOW2 (Copy Folder & Run Command)
+        run: |
+          mkdir -p custom_files
+          echo "Hello from GitHub Actions on ${{ matrix.arch }}!" > custom_files/message.txt
+          
+          virt-customize --add cirros-${{ matrix.arch }}.qcow2 \
+            --copy-in test/vms/ramen:/tmp \ 
+            --run-command "/tmp/ramen/install" \
+            --run-command "sed -i 's/^\(kernel .*\)$$/\1 quiet/' /boot/grub/menu.lst" \
+            --delete "/tmp/ramen"
+            
       - name: Convert to Compressed QCOW2
         run: |
           qemu-img convert -f qcow2 -O qcow2 -c cirros-${{ matrix.arch }}.qcow2 cirros-${{ matrix.arch }}-compressed.qcow2
           
-      - name: Build and Push Multi-Arch Image
+build-and-push-container:
+    needs: modify-qcow2
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🛎️ Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔽 Download Modified QCOW2 Images
+        uses: actions/download-artifact@v4
+        with:
+          path: qcow2_images
+
+      - name: 🔧 Setup Buildx for Multi-Arch
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔑 Login to Quay.io
         run: |
-          podman build --tag quay.io/your-repo/cirros:${{ matrix.arch }} --build-arg disk=cirros-${{ matrix.arch }}-compressed.qcow2 .
-          podman push quay.io/your-repo/cirros:${{ matrix.arch }}
+          echo "${{ secrets.QUAY_PASSWORD }}" | docker login quay.io -u "${{ secrets.QUAY_USERNAME }}" --password-stdin
+
+      - name: 🏗️ Build & Push Multi-Arch Image
+        run: |
+          docker buildx create --use
+          
+          docker buildx build \
+            --platform linux/amd64,linux/arm64,linux/ppc64le,linux/arm \
+            --tag quay.io/${{ secrets.QUAY_USERNAME }}/custom-qcow2:latest \
+            --file test/vms/cirros/Containerfile \
+            --push
