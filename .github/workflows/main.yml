@@ -37,7 +37,8 @@ jobs:
 
       - name: Download Cirros Image
         run: |
-          ./download-cirros --cirros-version 0.6.2 --arch ${{ matrix.arch }} --output cirros-0.6.2-${{ matrix.arch }}.qcow2
+          # ./download-cirros --cirros-version 0.6.2 --arch ${{ matrix.arch }} --output cirros-0.6.2-${{ matrix.arch }}.qcow2
+          wget -O cirros-${{ matrix.arch }}.qcow2 "https://download.cirros-cloud.net/0.6.2/cirros-0.6.2-${{ matrix.arch }}-disk.img"
 
       - name: Convert to Compressed QCOW2
         run: |
