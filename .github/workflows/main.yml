@@ -41,14 +41,7 @@ jobs:
           wget -O cirros-${{ matrix.arch }}.qcow2 "https://download.cirros-cloud.net/0.6.2/cirros-0.6.2-${{ matrix.arch }}-disk.img"
       - name: 📂 Modify QCOW2 (Copy Folder & Run Command)
         run: |
-          mkdir -p custom_files
-          echo "Hello from GitHub Actions on ${{ matrix.arch }}!" > custom_files/message.txt
-          
-          virt-customize --add cirros-${{ matrix.arch }}.qcow2 \
-            --copy-in test/vms/ramen:/tmp \ 
-            --run-command "/tmp/ramen/install" \
-            --run-command "sed -i 's/^\(kernel .*\)$$/\1 quiet/' /boot/grub/menu.lst" \
-            --delete "/tmp/ramen"
+          virt-customize --add cirros-${{ matrix.arch }}.qcow2 --copy-in test/vms/ramen:/tmp --run-command "/tmp/ramen/install" --run-command "sed -i 's/^\(kernel .*\)$$/\1 quiet/' /boot/grub/menu.lst" --delete "/tmp/ramen"
             
       - name: Convert to Compressed QCOW2
         run: |
