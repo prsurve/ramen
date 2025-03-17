@@ -42,8 +42,8 @@ jobs:
 
       - name: Convert to Compressed QCOW2
         run: |
-          qemu-img convert -f qcow2 -O qcow2 -c cirros-0.6.2-${{ matrix.arch }}.qcow2 cirros-${{ matrix.arch }}-compressed.qcow2
-
+          qemu-img convert -f qcow2 -O qcow2 -c cirros-${{ matrix.arch }}.qcow2 cirros-${{ matrix.arch }}-compressed.qcow2
+          
       - name: Build and Push Multi-Arch Image
         run: |
           podman build --tag quay.io/your-repo/cirros:${{ matrix.arch }} --build-arg disk=cirros-${{ matrix.arch }}-compressed.qcow2 .
