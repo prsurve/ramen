@@ -20,7 +20,7 @@ jobs:
         run: |
           sudo add-apt-repository universe
           sudo apt-get update
-          sudo apt-get install -y qemu-utils qemu-system qemu-kvm virtinst libvirt-daemon-system libvirt-clients libguestfs-tools podman libguestfs-tools-c supermin qemu qemu-kvm
+          sudo apt-get install -y qemu-utils qemu-system qemu-kvm virtinst libvirt-daemon-system libvirt-clients libguestfs-tools podman libguestfs-tools-c supermin qemu-kvm
 
       - name: Check QEMU Version
         run: |
