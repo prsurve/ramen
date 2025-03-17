@@ -1,0 +1,77 @@
+name: Multi-Arch QCOW2 Container Build
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  modify-qcow2:
+    strategy:
+      matrix:
+        arch: [x86_64, aarch64, ppc64le, arm]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🛎️ Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 📥 Download QCOW2 Image for ${{ matrix.arch }}
+        run: |
+          wget -O cirros-${{ matrix.arch }}.qcow2 "https://download.cirros-cloud.net/0.6.2/cirros-0.6.2-${{ matrix.arch }}-disk.img"
+
+      - name: 🛠 Install Dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y libguestfs-tools podman
+
+      - name: 📂 Modify QCOW2 (Copy Folder & Run Command)
+        run: |
+          mkdir -p custom_files
+          echo "Hello from GitHub Actions on ${{ matrix.arch }}!" > custom_files/message.txt
+          
+          virt-customize --add cirros-${{ matrix.arch }}.qcow2 \
+            --copy-in ../ramen:/tmp \
+            --copy-in "/tmp/ramen/install" \
+            --run-command "sed -i 's/^\(kernel .*\)$$/\1 quiet/' /boot/grub/menu.lst" \
+            --delete "/tmp/ramen"
+      - name: 📦 Compress QCOW2 Image
+        run: |
+          qemu-img convert -f qcow2 -O qcow2 -c cirros-${{ matrix.arch }}.qcow2 cirros-${{ matrix.arch }}-compressed.qcow2
+          mv cirros-${{ matrix.arch }}-compressed.qcow2 cirros-${{ matrix.arch }}.qcow2
+          
+      - name: 📤 Upload Modified QCOW2 Image
+        uses: actions/upload-artifact@v4
+        with:
+          name: modified-qcow2-${{ matrix.arch }}
+          path: cirros-${{ matrix.arch }}.qcow2
+
+  build-and-push-container:
+    needs: modify-qcow2
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🛎️ Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔽 Download Modified QCOW2 Images
+        uses: actions/download-artifact@v4
+        with:
+          path: qcow2_images
+
+      - name: 🔧 Setup Buildx for Multi-Arch
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔑 Login to Quay.io
+        run: |
+          echo "${{ secrets.QUAY_PASSWORD }}" | docker login quay.io -u "${{ secrets.QUAY_USERNAME }}" --password-stdin
+
+      - name: 🏗️ Build & Push Multi-Arch Image
+        run: |
+          docker buildx create --use
+          
+          docker buildx build \
+            --platform linux/amd64,linux/arm64,linux/ppc64le,linux/arm \
+            --tag quay.io/${{ secrets.QUAY_USERNAME }}/custom-qcow2:latest \
+            --file Containerfile \
+            --push
