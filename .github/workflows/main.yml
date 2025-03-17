@@ -19,7 +19,7 @@ jobs:
       - name: Install Required Packages
         run: |
           sudo apt-get update
-          sudo apt-get install -y qemu-utils qemu-system qemu-kvm virtinst libvirt-daemon-system libvirt-clients libguestfs-tools podman
+          sudo apt-get install -y qemu-utils qemu-system qemu-kvm virtinst libvirt-daemon-system libvirt-clients libguestfs-tools podman libguestfs-tools-c supermin qemu qemu-kvm
 
       - name: Check QEMU Version
         run: |
