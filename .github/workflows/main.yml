@@ -39,7 +39,7 @@ jobs:
           wget -O ~/.guestfs/appliance.tar.xz "https://download.libguestfs.org/binaries/appliance/appliance-1.54.0.tar.xz"
           tar -xf ~/.guestfs/appliance.tar.xz -C ~/.guestfs
           rm ~/.guestfs/appliance.tar.xz
-          echo "export LIBGUESTFS_PATH=$HOME/.guestfs/appliance" >> ~/.bashrc
+          # echo "export LIBGUESTFS_PATH=$HOME/.guestfs/appliance" >> ~/.bashrc
           source ~/.bashrc
 
       - name: 🔍 Check QEMU Version
