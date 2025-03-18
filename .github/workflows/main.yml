@@ -53,6 +53,7 @@ jobs:
         run: |
           export LIBGUESTFS_BACKEND=direct
           export LIBGUESTFS_PATH=$HOME/.guestfs/appliance
+          export LIBGUESTFS_BACKEND_SETTINGS=network.usermode
           virt-customize --add cirros-${{ matrix.arch }}.qcow2 --copy-in test/vms/ramen:/tmp --run-command "/tmp/ramen/install" --delete "/tmp/ramen" --verbose
       - name: 📦 Compress QCOW2 Image
         run: |
