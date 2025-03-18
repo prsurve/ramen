@@ -42,7 +42,9 @@ jobs:
 
       - name: 🛠️ Modify QCOW2 Without Root
         run: |
-          export LIBGUESTFS_BACKEND=direct 
+          export LIBGUESTFS_BACKEND=direct
+          export SUPERMIN_KERNEL=''
+          export SUPERMIN_MODULES=''
           virt-customize --add cirros-${{ matrix.arch }}.qcow2 --copy-in test/vms/ramen:/tmp --run-command "/tmp/ramen/install" --delete "/tmp/ramen" --verbose
       - name: 📦 Compress QCOW2 Image
         run: |
