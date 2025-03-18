@@ -76,6 +76,7 @@ jobs:
         run: |
           sudo cp /boot/vmlinuz-6.8.0-1021-azure /tmp/kernel.img
           sudo chmod 0644 /tmp/kernel.img
+          sudo chmod 0644 /boot/vmlinuz-6.8.0-1021-azure
 
       - name: 🔽 Download Cirros Image
         run: |
