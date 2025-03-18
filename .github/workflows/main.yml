@@ -24,7 +24,7 @@ jobs:
       - name: 📦 Install Required Packages
         run: |
           sudo apt-get update
-          sudo apt-get install -y qemu-system qemu-utils libguestfs-tools 
+          sudo apt-get install -y qemu-system qemu-utils libguestfs-tools qemu-system-x86
       
       - name: Set Environment for libguestfs
         run: |
