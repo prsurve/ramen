@@ -72,11 +72,10 @@ jobs:
             echo "⚠️ KVM group not found, skipping."
           fi
 
-      # - name: ✅ Ensure User Can Access `/dev/kvm`
-      #   run: |
-      #     sudo usermod -aG kvm $USER
-      #     sudo chmod 666 /dev/kvm
-      #     newgrp kvm
+      - name: ✅ Ensure User Can Access `/dev/kvm`
+        run: |
+          sudo cp /boot/vmlinuz-6.8.0-1021-azure /tmp/kernel.img
+          sudo chmod 0644 /tmp/kernel.img
 
       - name: 🔽 Download Cirros Image
         run: |
@@ -104,6 +103,7 @@ jobs:
         run: |
           export LIBGUESTFS_BACKEND=direct
           export LIBGUESTFS_DEBUG=1 LIBGUESTFS_TRACE=1
+          export LIBGUESTFS_KERNEL=/tmp/kernel.img
           virt-customize --add cirros-${{ matrix.arch }}.qcow2 --copy-in test/vms/ramen:/tmp --run-command "/tmp/ramen/install" --delete "/tmp/ramen" --verbose
       - name: 📦 Compress QCOW2 Image
         run: |
