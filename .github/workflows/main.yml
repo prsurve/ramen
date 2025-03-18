@@ -24,7 +24,16 @@ jobs:
       - name: 📦 Install Required Packages
         run: |
           sudo apt-get update
-          sudo apt-get install -y qemu-system qemu-utils libguestfs-tools libguestfs-appliance
+          sudo apt-get install -y qemu-system qemu-utils libguestfs-tools 
+      
+      - name: 📥 Download and Set Up Libguestfs Appliance
+        run: |
+          mkdir -p ~/.guestfs
+          wget -O ~/.guestfs/appliance.tar.xz "https://download.libguestfs.org/binaries/appliance/appliance-1.54.0.tar.xz"
+          tar -xf ~/.guestfs/appliance.tar.gz -C ~/.guestfs
+          rm ~/.guestfs/appliance.tar.xz
+          echo "export LIBGUESTFS_PATH=$HOME/.guestfs/appliance" >> ~/.bashrc
+          source ~/.bashrc
 
       - name: 🔍 Check QEMU Version
         run: |
