@@ -30,11 +30,11 @@ jobs:
         run: |
           qemu-system-${{ matrix.arch }} --version
 
-      - name: ✅ Ensure User Can Access `/dev/kvm`
-        run: |
-          sudo usermod -aG kvm $USER
-          sudo chmod 666 /dev/kvm
-          newgrp kvm
+      # - name: ✅ Ensure User Can Access `/dev/kvm`
+      #   run: |
+      #     sudo usermod -aG kvm $USER
+      #     sudo chmod 666 /dev/kvm
+      #     newgrp kvm
 
       - name: 🔽 Download Cirros Image
         run: |
