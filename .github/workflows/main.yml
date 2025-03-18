@@ -45,6 +45,32 @@ jobs:
       - name: 🔍 Check QEMU Version
         run: |
           qemu-system-${{ matrix.arch }} --version
+      
+      - name: 🔍 Check KVM Availability
+        run: |
+          if [ -e /dev/kvm ]; then
+            echo "✅ KVM is available."
+          else
+            echo "⚠️ KVM is missing. virt-customize may run slowly."
+          fi
+
+      - name: 🔧 Fix KVM Permissions
+        run: |
+          if [ -e /dev/kvm ]; then
+            sudo chmod 0666 /dev/kvm
+            echo "✅ KVM permissions updated."
+          else
+            echo "⚠️ /dev/kvm not found, skipping."
+          fi
+
+      - name: ➕ Add User to KVM Group
+        run: |
+          if getent group kvm > /dev/null; then
+            sudo usermod -aG kvm $USER
+            echo "✅ Added user to KVM group."
+          else
+            echo "⚠️ KVM group not found, skipping."
+          fi
 
       # - name: ✅ Ensure User Can Access `/dev/kvm`
       #   run: |
@@ -59,10 +85,8 @@ jobs:
       - name: 🛠️ Modify QCOW2 Without Root
         run: |
           export LIBGUESTFS_BACKEND=direct
-          export LIBGUESTFS_PATH=$HOME/.guestfs/appliance
-          export LIBGUESTFS_HV_DISABLE_IPV6=1
-          export LIBGUESTFS_BACKEND_SETTINGS=network.usermode
-          export LIBGUESTFS_HV_DISABLE_IPV6=1
+          export LIBGUESTFS_DEBUG=1 LIBGUESTFS_TRACE=1
+          # export LIBGUESTFS_PATH=$HOME/.guestfs/appliance
           virt-customize --add cirros-${{ matrix.arch }}.qcow2 --copy-in test/vms/ramen:/tmp --run-command "/tmp/ramen/install" --delete "/tmp/ramen" --verbose
       - name: 🔧 Disable IPv6
         run: |
@@ -75,6 +99,11 @@ jobs:
         run: |
           sudo sed -i 's/^#\(disable_ipv6\)/\1/' /etc/passt.conf || echo "disable_ipv6" | sudo tee -a /etc/passt.conf
           sudo systemctl restart passt || true
+      
+      - name: 🔧 Fix passt Permissions
+        run: |
+          sudo chmod 0666 /run/user/1001/libguestfs*/passt.sock || true
+          sudo chown $USER:$USER /run/user/1001/libguestfs*/passt.sock || true
       
       - name: 📦 Compress QCOW2 Image
         run: |
