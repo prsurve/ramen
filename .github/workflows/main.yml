@@ -46,7 +46,7 @@ jobs:
           wget -O cirros-${{ matrix.arch }}.qcow2 "https://download.cirros-cloud.net/0.6.2/cirros-0.6.2-${{ matrix.arch }}-disk.img"
       - name: 📂 Modify QCOW2 (Copy Folder & Run Command)
         run: |
-          sudo export LIBGUESTFS_DEBUG=1 LIBGUESTFS_TRACE=1
+          sudo -s export LIBGUESTFS_DEBUG=1 LIBGUESTFS_TRACE=1
           sudo chmod 0644 /boot/vmlinuz-*
           sudo virt-customize --add cirros-${{ matrix.arch }}.qcow2 --copy-in test/vms/ramen:/tmp --run-command "/tmp/ramen/install" --run-command "sed -i 's/^\(kernel .*\)$$/\1 quiet/' /boot/grub/menu.lst" --delete "/tmp/ramen"
             
