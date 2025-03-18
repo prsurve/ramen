@@ -15,13 +15,17 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+      
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action
+        with:
+          platforms: all
 
       - name: Install Required Packages
         run: |
-          sudo add-apt-repository universe
+          # sudo add-apt-repository universe
           sudo apt-get update
-          sudo apt-get install -y qemu-utils qemu-system qemu-kvm virtinst libvirt-daemon-system libvirt-clients libguestfs-tools podman supermin qemu-kvm
-
+          sudo apt-get install -y qemu-system qemu-utils libguestfs-tools
       - name: Check QEMU Version
         run: |
           QEMU_VERSION=$(qemu-system-${{ matrix.arch }} --version | head -n1)
