@@ -10,7 +10,7 @@ jobs:
   modify-qcow2:
     strategy:
       matrix:
-        arch: [x86_64, arm64, ppc64le]
+        arch: [x86_64]
     runs-on: ubuntu-latest
     steps:
       - name: 📥 Checkout Repository
