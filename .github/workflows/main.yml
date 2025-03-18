@@ -82,12 +82,7 @@ jobs:
         run: |
           wget -O cirros-${{ matrix.arch }}.qcow2 "https://download.cirros-cloud.net/0.6.2/cirros-0.6.2-${{ matrix.arch }}-disk.img"
 
-      - name: 🛠️ Modify QCOW2 Without Root
-        run: |
-          export LIBGUESTFS_BACKEND=direct
-          export LIBGUESTFS_DEBUG=1 LIBGUESTFS_TRACE=1
-          # export LIBGUESTFS_PATH=$HOME/.guestfs/appliance
-          virt-customize --add cirros-${{ matrix.arch }}.qcow2 --copy-in test/vms/ramen:/tmp --run-command "/tmp/ramen/install" --delete "/tmp/ramen" --verbose
+      
       - name: 🔧 Disable IPv6
         run: |
           echo "net.ipv6.conf.all.disable_ipv6 = 1" | sudo tee -a /etc/sysctl.conf
@@ -105,6 +100,11 @@ jobs:
           sudo chmod 0666 /run/user/1001/libguestfs*/passt.sock || true
           sudo chown $USER:$USER /run/user/1001/libguestfs*/passt.sock || true
       
+      - name: 🛠️ Modify QCOW2 Without Root
+        run: |
+          export LIBGUESTFS_BACKEND=direct
+          export LIBGUESTFS_DEBUG=1 LIBGUESTFS_TRACE=1
+          virt-customize --add cirros-${{ matrix.arch }}.qcow2 --copy-in test/vms/ramen:/tmp --run-command "/tmp/ramen/install" --delete "/tmp/ramen" --verbose
       - name: 📦 Compress QCOW2 Image
         run: |
           qemu-img convert -f qcow2 -O qcow2 -c cirros-${{ matrix.arch }}.qcow2 cirros-${{ matrix.arch }}-compressed.qcow2
