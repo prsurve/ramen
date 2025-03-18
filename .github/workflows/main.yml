@@ -26,6 +26,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y qemu-system qemu-utils libguestfs-tools 
       
+      - name: Set Environment for libguestfs
+        run: |
+          echo "export LIBGUESTFS_BACKEND=direct" >> ~/.bashrc
+          echo "export LIBGUESTFS_BACKEND_SETTINGS=network.usermode" >> ~/.bashrc
+          echo "export LIBGUESTFS_HV_DISABLE_IPV6=1" >> ~/.bashrc
+          source ~/.bashrc
+      
       - name: 📥 Download and Set Up Libguestfs Appliance
         run: |
           mkdir -p ~/.guestfs
@@ -55,6 +62,7 @@ jobs:
           export LIBGUESTFS_PATH=$HOME/.guestfs/appliance
           export LIBGUESTFS_HV_DISABLE_IPV6=1
           export LIBGUESTFS_BACKEND_SETTINGS=network.usermode
+          export LIBGUESTFS_HV_DISABLE_IPV6=1
           virt-customize --add cirros-${{ matrix.arch }}.qcow2 --copy-in test/vms/ramen:/tmp --run-command "/tmp/ramen/install" --delete "/tmp/ramen" --verbose
       - name: 📦 Compress QCOW2 Image
         run: |
