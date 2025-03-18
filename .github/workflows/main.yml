@@ -10,50 +10,59 @@ jobs:
   modify-qcow2:
     strategy:
       matrix:
-        arch: [x86_64]
+        arch: [x86_64, arm64, ppc64le]
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
+      - name: 📥 Checkout Repository
         uses: actions/checkout@v4
       
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3 
+      - name: 🛠️ Set up QEMU
+        uses: docker/setup-qemu-action@v3
         with:
           platforms: all
 
-      - name: Install Required Packages
+      - name: 📦 Install Required Packages
         run: |
-          # sudo add-apt-repository universe
           sudo apt-get update
           sudo apt-get install -y qemu-system qemu-utils libguestfs-tools
-      - name: Check QEMU Version
+
+      - name: 🔍 Check QEMU Version
         run: |
           QEMU_VERSION=$(qemu-system-${{ matrix.arch }} --version | head -n1)
           echo "QEMU Version: $QEMU_VERSION"
 
-      - name: Verify No Outdated QEMU Binaries
+      - name: ✅ Verify No Outdated QEMU Binaries
         run: |
           if sudo virsh list --outdated | grep -q "No VM guests are running outdated hypervisor"; then
-            echo "QEMU is up-to-date. Proceeding with the build."
+            echo "QEMU is up-to-date."
           else
-            echo "Outdated QEMU binaries detected. Updating..."
+            echo "Updating QEMU..."
             sudo apt-get install --only-upgrade qemu-system qemu-utils
           fi
 
-      - name: Download Cirros Image
+      - name: 🔽 Download Cirros Image
         run: |
-          # ./download-cirros --cirros-version 0.6.2 --arch ${{ matrix.arch }} --output cirros-0.6.2-${{ matrix.arch }}.qcow2
           wget -O cirros-${{ matrix.arch }}.qcow2 "https://download.cirros-cloud.net/0.6.2/cirros-0.6.2-${{ matrix.arch }}-disk.img"
-      - name: 📂 Modify QCOW2 (Copy Folder & Run Command)
+
+      - name: 🛠️ Modify QCOW2 (Copy Folder & Run Command)
         run: |
-          sudo -s export LIBGUESTFS_DEBUG=1 LIBGUESTFS_TRACE=1
-          sudo chmod 0644 /boot/vmlinuz-*
-          sudo virt-customize --add cirros-${{ matrix.arch }}.qcow2 --copy-in test/vms/ramen:/tmp --run-command "/tmp/ramen/install" --run-command "sed -i 's/^\(kernel .*\)$$/\1 quiet/' /boot/grub/menu.lst" --delete "/tmp/ramen"
-            
-      - name: Convert to Compressed QCOW2
+          sudo -E virt-customize \
+            --add cirros-${{ matrix.arch }}.qcow2 \
+            --copy-in test/vms/ramen:/tmp \
+            --run-command "/tmp/ramen/install" \
+            --delete "/tmp/ramen"
+
+      - name: 📦 Compress QCOW2 Image
         run: |
           qemu-img convert -f qcow2 -O qcow2 -c cirros-${{ matrix.arch }}.qcow2 cirros-${{ matrix.arch }}-compressed.qcow2
-          
+
+      - name: 📤 Upload Modified QCOW2 as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: qcow2-${{ matrix.arch }}
+          path: cirros-${{ matrix.arch }}-compressed.qcow2
+          retention-days: 3
+
   build-and-push-container:
     needs: modify-qcow2
     runs-on: ubuntu-latest
@@ -76,9 +85,8 @@ jobs:
       - name: 🏗️ Build & Push Multi-Arch Image
         run: |
           docker buildx create --use
-          
           docker buildx build \
-            --platform linux/amd64,linux/arm64,linux/ppc64le,linux/arm \
+            --platform linux/amd64,linux/arm64,linux/ppc64le \
             --tag quay.io/${{ secrets.QUAY_USERNAME }}/custom-qcow2:latest \
             --file test/vms/cirros/Containerfile \
             --push
