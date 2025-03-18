@@ -50,7 +50,9 @@ jobs:
             --add cirros-${{ matrix.arch }}.qcow2 \
             --copy-in test/vms/ramen:/tmp \
             --run-command "/tmp/ramen/install" \
-            --delete "/tmp/ramen"
+            --delete "/tmp/ramen" \
+            --verbose
+
 
       - name: 📦 Compress QCOW2 Image
         run: |
