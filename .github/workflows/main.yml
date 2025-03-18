@@ -104,7 +104,7 @@ jobs:
           export LIBGUESTFS_BACKEND=direct
           export LIBGUESTFS_DEBUG=1 LIBGUESTFS_TRACE=1
           export LIBGUESTFS_KERNEL=/tmp/kernel.img
-          virt-customize --add cirros-${{ matrix.arch }}.qcow2 --copy-in test/vms/ramen:/tmp --run-command "/tmp/ramen/install" --delete "/tmp/ramen" --verbose
+          LIBGUESTFS_BACKEND=direct virt-customize --add cirros-${{ matrix.arch }}.qcow2 --copy-in test/vms/ramen:/tmp --run-command "/tmp/ramen/install" --delete "/tmp/ramen" --verbose
       - name: 📦 Compress QCOW2 Image
         run: |
           qemu-img convert -f qcow2 -O qcow2 -c cirros-${{ matrix.arch }}.qcow2 cirros-${{ matrix.arch }}-compressed.qcow2
