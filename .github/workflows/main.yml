@@ -10,7 +10,7 @@ jobs:
   modify-qcow2:
     strategy:
       matrix:
-        arch: [x86_64]
+        arch: [x86_64, arm64, ppc64le]
     runs-on: ubuntu-latest
     steps:
       - name: 📥 Checkout Repository
@@ -28,31 +28,27 @@ jobs:
 
       - name: 🔍 Check QEMU Version
         run: |
-          QEMU_VERSION=$(qemu-system-${{ matrix.arch }} --version | head -n1)
-          echo "QEMU Version: $QEMU_VERSION"
+          qemu-system-${{ matrix.arch }} --version
 
-      - name: ✅ Verify No Outdated QEMU Binaries
+      - name: ✅ Ensure User Can Access `/dev/kvm`
         run: |
-          if sudo virsh list --outdated | grep -q "No VM guests are running outdated hypervisor"; then
-            echo "QEMU is up-to-date."
-          else
-            echo "Updating QEMU..."
-            sudo apt-get install --only-upgrade qemu-system qemu-utils
-          fi
+          sudo usermod -aG kvm $USER
+          sudo chmod 666 /dev/kvm
+          newgrp kvm
 
       - name: 🔽 Download Cirros Image
         run: |
           wget -O cirros-${{ matrix.arch }}.qcow2 "https://download.cirros-cloud.net/0.6.2/cirros-0.6.2-${{ matrix.arch }}-disk.img"
 
-      - name: 🛠️ Modify QCOW2 (Copy Folder & Run Command)
+      - name: 🛠️ Modify QCOW2 Without Root
         run: |
-          sudo -E virt-customize \
+          export LIBGUESTFS_BACKEND=direct
+          virt-customize \
             --add cirros-${{ matrix.arch }}.qcow2 \
             --copy-in test/vms/ramen:/tmp \
             --run-command "/tmp/ramen/install" \
-            --delete "/tmp/ramen" \
+            --delete "/tmp/ramen" \ 
             --verbose
-
 
       - name: 📦 Compress QCOW2 Image
         run: |
