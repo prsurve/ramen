@@ -41,7 +41,7 @@ jobs:
           rm ~/.guestfs/appliance.tar.xz
           # echo "export LIBGUESTFS_PATH=$HOME/.guestfs/appliance" >> ~/.bashrc
           source ~/.bashrc
-
+    
       - name: 🔍 Check QEMU Version
         run: |
           qemu-system-${{ matrix.arch }} --version
@@ -81,6 +81,11 @@ jobs:
       - name: 🔽 Download Cirros Image
         run: |
           wget -O cirros-${{ matrix.arch }}.qcow2 "https://download.cirros-cloud.net/0.6.2/cirros-0.6.2-${{ matrix.arch }}-disk.img"
+
+      - name: Verify Image Integrity
+        run: |
+          qemu-img info cirros-${{ matrix.arch }}.qcow2
+          virt-filesystems --long -h --all -a cirros-${{ matrix.arch }}.qcow2 || echo "Warning: No filesystems detected"
 
       
       - name: 🔧 Disable IPv6
