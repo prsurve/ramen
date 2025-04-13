@@ -1,20 +1,46 @@
 #!/bin/sh
 
-# SPDX-FileCopyrightText: The RamenDR authors
-# SPDX-License-Identifier: Apache-2.0
+# Color codes for formatted output
+Cyan='\033[0;36m'         
+NC='\033[0m' # No Color
 
-log="/var/log/ramen.log"
+# Constants
+MOUNT="/mnt"
+HASHFILE="$MOUNT/hashfile"
 
-emit() {
-    echo "$(date) $1" >> "$log"
-    sync "$log"
+# Trap to handle termination signals (SIGINT, SIGTERM)
+cleanup() {
+    echo "Received termination signal! Syncing data and exiting..."
+    sync
+    touch "$MOUNT/trap_$(date +%s)"
+    exit 1
 }
 
-trap "emit STOP; exit" TERM INT
+trap cleanup SIGINT SIGTERM
 
-emit "START uptime=$(awk '{print $1}' /proc/uptime)"
-
+# Main loop
 while true; do
-    sleep 10 & wait
-    emit UPDATE
+    hostname=$(hostname -f)
+    file="$MOUNT/data_$(date +%s)_$hostname"
+    
+    printf "Creating file with name: ${Cyan}$file${NC}\n"
+
+    # Write random data to file
+    dd if=/dev/urandom of="$file" bs=4k count=$((RANDOM % 3 + 1)) oflag=direct
+
+    # Compute and store hash
+    md5sum "$file" >> "$HASHFILE"
+    sync
+
+    # Random sleep with trap awareness
+    sleep_time=$((RANDOM % 15 + 1))
+    echo "Sleeping for $sleep_time seconds..."
+    sleep "$sleep_time" &
+    SLEEP_PID=$!
+    wait "$SLEEP_PID"
+
+    # Perform random integrity check
+    if [ $((RANDOM % 2)) -eq 1 ]; then
+        md5sum -c --quiet "$HASHFILE"
+    fi
 done
